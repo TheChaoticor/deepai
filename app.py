@@ -3,12 +3,13 @@ import cv2
 import numpy as np
 import tempfile
 import torch
+import torchvision.models as models
 from torchvision import transforms
 from PIL import Image
 
-# Load a pre-trained deepfake detection model (Placeholder)
+# Load a pre-trained deepfake detection model
 def load_model():
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', weights="ResNet18_Weights.IMAGENET1K_V1")
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
     model.eval()
     return model
 
@@ -21,8 +22,9 @@ def preprocess_image(image):
 
 def detect_deepfake_image(image, model):
     image_tensor = preprocess_image(image)
-    output = model(image_tensor)
-    confidence = torch.nn.functional.softmax(output, dim=1)[0][1].item()
+    with torch.no_grad():
+        output = model(image_tensor)
+        confidence = torch.nn.functional.softmax(output, dim=1)[0][1].item()
     return confidence
 
 def detect_deepfake_video(video_path, model):
@@ -30,17 +32,19 @@ def detect_deepfake_video(video_path, model):
     frame_count = 0
     fake_score = 0
     
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        frame_count += 1
-        if frame_count % 30 == 0:  # Analyze every 30th frame
-            image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            fake_score += detect_deepfake_image(image, model)
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            frame_count += 1
+            if frame_count % 30 == 0:  # Analyze every 30th frame
+                image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                fake_score += detect_deepfake_image(image, model)
+    finally:
+        cap.release()
     
-    cap.release()
     return fake_score / max(1, (frame_count // 30))
 
 # Streamlit UI

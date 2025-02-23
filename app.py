@@ -8,7 +8,7 @@ from PIL import Image
 
 # Load a pre-trained deepfake detection model (Placeholder)
 def load_model():
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
+    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', weights="ResNet18_Weights.IMAGENET1K_V1")
     model.eval()
     return model
 
@@ -41,7 +41,7 @@ def detect_deepfake_video(video_path, model):
             fake_score += detect_deepfake_image(image, model)
     
     cap.release()
-    return fake_score / (frame_count // 30)
+    return fake_score / max(1, (frame_count // 30))
 
 # Streamlit UI
 st.title("Deepfake Detection WebApp")
@@ -53,7 +53,7 @@ if option == "Image":
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
         confidence = detect_deepfake_image(image, model)
         st.write(f"Deepfake Confidence: {confidence:.2f}")
         if confidence > 0.5:

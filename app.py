@@ -1,3 +1,11 @@
+import asyncio
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    # Create and set a new event loop if one doesn't exist
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
 import streamlit as st
 import cv2
 import numpy as np
@@ -24,6 +32,7 @@ def detect_deepfake_image(image, model):
     image_tensor = preprocess_image(image)
     with torch.no_grad():
         output = model(image_tensor)
+        # Using the second class as confidence (this is a placeholder - adjust according to your model)
         confidence = torch.nn.functional.softmax(output, dim=1)[0][1].item()
     return confidence
 
@@ -37,7 +46,6 @@ def detect_deepfake_video(video_path, model):
             ret, frame = cap.read()
             if not ret:
                 break
-            
             frame_count += 1
             if frame_count % 30 == 0:  # Analyze every 30th frame
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
